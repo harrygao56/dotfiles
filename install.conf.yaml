@@ -1,0 +1,16 @@
+- defaults:
+    link:
+      relink: true
+      force: true
+
+- clean: ["~", "~/.config"]
+
+- link:
+    ~/.config/nvim: nvim
+    ~/.config/fish: fish
+    ~/.config/opencode: opencode
+    ~/.config/starship.toml: starship.toml
+    ~/.tmux.conf: tmux.conf
+
+- shell:
+    - [git submodule update --init --recursive, Installing submodules]
