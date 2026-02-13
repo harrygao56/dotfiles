@@ -12,6 +12,7 @@
     ~/.config/starship.toml: starship.toml
     ~/.tmux.conf: tmux.conf
     ~/Brewfile: Brewfile
+    ~/.config/karabiner: karabiner
 
 - shell:
     - [git submodule update --init --recursive, Installing submodules]

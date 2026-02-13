@@ -1,4 +1,5 @@
 # This file contains fish universal variable definitions.
 # VERSION: 3.0
+SETUVAR --export PYENV_ROOT:/Users/harry/\x2epyenv
 SETUVAR __fish_initialized:4300
 SETUVAR fish_user_paths:/Users/harrygao/\x2elocal/bin\x1e/opt/homebrew/bin
