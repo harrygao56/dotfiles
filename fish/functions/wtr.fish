@@ -1,4 +1,4 @@
-function wtr --description "Remove current worktree and kill its claude pane"
+function wtr --description "Remove current worktree and kill the current pane"
     if not set -q TMUX
         echo "Error: must be inside tmux"
         return 1
@@ -17,18 +17,11 @@ function wtr --description "Remove current worktree and kill its claude pane"
     end
 
     set current (pwd)
-    set branch (basename $current | string replace (basename (git worktree list --porcelain | head -1 | string replace "worktree " ""))- "")
     set main_worktree (git worktree list --porcelain | head -1 | string replace "worktree " "")
-
-    # Find and kill the claude pane for this branch
-    set claude_pane (tmux list-panes -F '#{pane_id} #{pane_title}' | grep "claude:$branch" | awk '{print $1}')
-    if test -n "$claude_pane"
-        tmux kill-pane -t $claude_pane
-    end
 
     # Remove the worktree
     git -C $main_worktree worktree remove $current
 
-    # Kill the current pane last
+    # Kill the current pane
     tmux kill-pane
 end
