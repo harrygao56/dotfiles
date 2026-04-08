@@ -17,4 +17,3 @@ set -gx PYTHONPATH /Users/harry/dev/duet . $PYTHONPATH
 set -gx DECAGON_ENV dev
 
 # DATABASE_URL and GITHUB_PERSONAL_ACCESS_TOKEN are set via `set -Ux` (fish universal variables)
-set -gx POSTGRES_CONNECTION_URL ***REMOVED***
