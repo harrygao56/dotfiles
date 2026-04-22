@@ -13,6 +13,7 @@
     ~/.tmux.conf: tmux.conf
     ~/Brewfile: Brewfile
     ~/.config/karabiner: karabiner
+    ~/Library/Application Support/com.mitchellh.ghostty/config: ghostty/config
 
 - shell:
     - [git submodule update --init --recursive, Installing submodules]
