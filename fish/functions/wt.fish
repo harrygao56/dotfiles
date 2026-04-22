@@ -27,6 +27,6 @@ function wt --description "Create a git worktree and start claude in it"
     or return 1
 
     cd $worktree_path
-    tmux select-pane -T "claude:$branch"
+    tmux set-option -p @wt_label "claude:$branch"
     claude
 end
