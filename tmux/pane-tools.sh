@@ -97,6 +97,80 @@ swap_with_mark() {
   "$TMUX_BIN" display-message 'Panes swapped'
 }
 
+# tmux's layout-string checksum: a 16-bit rotate-and-add over the body, the
+# same algorithm tmux uses internally (layout_checksum in layout-custom.c).
+layout_checksum() {
+  local s="$1" csum=0 i code
+  for ((i = 0; i < ${#s}; i++)); do
+    printf -v code '%d' "'${s:i:1}"
+    csum=$(( ( (csum >> 1) + ((csum & 1) << 15) + code ) & 0xffff ))
+  done
+  printf '%04x' "$csum"
+}
+
+# Emit one row of the layout: a left-to-right strip of equal-ish columns at a
+# given absolute y. A single-pane row is a bare cell (tmux never wraps a lone
+# pane in {}); multi-pane rows are wrapped in {}. Columns share the leftover
+# width, with the remainder handed to the leftmost columns one cell at a time.
+build_row() {
+  local width="$1" height="$2" y="$3"
+  shift 3
+  local ids=("$@")
+  local count="${#ids[@]}"
+
+  if (( count == 1 )); then
+    printf '%dx%d,0,%d,%s' "$width" "$height" "$y" "${ids[0]}"
+    return
+  fi
+
+  local avail=$(( width - (count - 1) ))   # 1 column per inter-pane divider
+  local base=$(( avail / count ))
+  local rem=$(( avail % count ))
+  local x=0 cells="" i w
+  for ((i = 0; i < count; i++)); do
+    w="$base"
+    (( i < rem )) && w=$(( w + 1 ))
+    cells+="${w}x${height},${x},${y},${ids[i]}"
+    x=$(( x + w + 1 ))
+    (( i < count - 1 )) && cells+=","
+  done
+  printf '%dx%d,0,%d{%s}' "$width" "$height" "$y" "$cells"
+}
+
+# Rebalance a window into an even grid of at most two rows: 1 pane fills the
+# window, 2 panes sit side-by-side in a single row, and 3+ panes split into a
+# top row (ceil(n/2)) over a bottom row (floor(n/2)). Panes keep their order.
+rebalance() {
+  local window_id="$1"
+  local dims
+  dims="$("$TMUX_BIN" display-message -p -t "$window_id" '#{window_width} #{window_height}')"
+  local width="${dims% *}" height="${dims#* }"
+
+  local ids=()
+  local id
+  while IFS= read -r id; do
+    ids+=("${id#%}")   # layout strings use the bare pane number, no leading %
+  done < <("$TMUX_BIN" list-panes -t "$window_id" -F '#{pane_id}')
+  local count="${#ids[@]}"
+
+  local body
+  if (( count <= 2 )); then
+    # One row spanning the full height (a lone pane comes back as a bare cell).
+    body="$(build_row "$width" "$height" 0 "${ids[@]}")"
+  else
+    local top_n=$(( (count + 1) / 2 ))
+    local top_h=$(( (height - 1) / 2 ))   # 1 row for the divider between rows
+    local bottom_h=$(( height - 1 - top_h ))
+    local top_row bottom_row
+    top_row="$(build_row "$width" "$top_h" 0 "${ids[@]:0:top_n}")"
+    bottom_row="$(build_row "$width" "$bottom_h" "$(( top_h + 1 ))" "${ids[@]:top_n}")"
+    body="${width}x${height},0,0[${top_row},${bottom_row}]"
+  fi
+
+  "$TMUX_BIN" select-layout -t "$window_id" "$(layout_checksum "$body"),${body}"
+  "$TMUX_BIN" display-message 'Panes rebalanced'
+}
+
 main() {
   local command="${1:-}"
 
@@ -112,6 +186,9 @@ main() {
       ;;
     swap-with-mark)
       swap_with_mark "$2"
+      ;;
+    rebalance)
+      rebalance "$2"
       ;;
     *)
       printf 'Unknown command: %s\n' "$command" >&2
