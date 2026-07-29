@@ -1,4 +1,4 @@
-function wtt --description "Re-tag all tmux panes with @wt_label from their current git worktree branch"
+function wtt --description "Re-tag all tmux panes with their current git branch"
     if not set -q TMUX
         echo "Error: must be inside tmux"
         return 1
@@ -12,12 +12,7 @@ function wtt --description "Re-tag all tmux panes with @wt_label from their curr
         set pane_id $parts[1]
         set path $parts[2]
 
-        set git_dir (git -C $path rev-parse --git-dir 2>/dev/null)
-        set common_dir (git -C $path rev-parse --git-common-dir 2>/dev/null)
-
-        # Skip non-git dirs and the main worktree (only label linked worktrees,
-        # which is what `wt` creates).
-        if test -z "$git_dir"; or test "$git_dir" = "$common_dir"
+        if not git -C $path rev-parse --git-dir >/dev/null 2>&1
             set skipped (math $skipped + 1)
             continue
         end
@@ -28,7 +23,7 @@ function wtt --description "Re-tag all tmux panes with @wt_label from their curr
             continue
         end
 
-        tmux set-option -p -t $pane_id @wt_label "claude:$branch"
+        tmux set-option -p -t $pane_id @wt_label "$branch"
         set tagged (math $tagged + 1)
     end
 

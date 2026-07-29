@@ -1,4 +1,4 @@
-function wt --description "Create a git worktree and start claude in it"
+function wt --description "Create a git worktree and enter it"
     if not set -q TMUX
         echo "Error: must be inside tmux"
         return 1
@@ -27,6 +27,5 @@ function wt --description "Create a git worktree and start claude in it"
     or return 1
 
     cd $worktree_path
-    tmux set-option -p -t $TMUX_PANE @wt_label "claude:$branch"
-    claude
+    tmux set-option -p -t $TMUX_PANE @wt_label "$branch"
 end

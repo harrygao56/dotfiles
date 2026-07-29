@@ -56,12 +56,30 @@ assign_all_colors() {
 
 recolor_window() {
   local window_id="$1"
+  local quiet="${2:-}"
 
   "$TMUX_BIN" list-panes -t "$window_id" -F '#{pane_id}' | while IFS= read -r pane_id; do
     "$TMUX_BIN" set-option -p -t "$pane_id" @pane_header_color "$(random_color)" >/dev/null
   done
 
-  "$TMUX_BIN" display-message 'Pane headers recolored'
+  if [[ "$quiet" != "quiet" ]]; then
+    "$TMUX_BIN" display-message 'Pane headers recolored'
+  fi
+}
+
+tag_window() {
+  local window_id="$1"
+  local pane_id path branch
+
+  while IFS=$'\t' read -r pane_id path; do
+    branch="$(git -C "$path" symbolic-ref --short HEAD 2>/dev/null || true)"
+
+    if [[ -n "$branch" ]]; then
+      "$TMUX_BIN" set-option -p -t "$pane_id" @wt_label "$branch" >/dev/null
+    else
+      "$TMUX_BIN" set-option -pu -t "$pane_id" @wt_label >/dev/null 2>&1 || true
+    fi
+  done < <("$TMUX_BIN" list-panes -t "$window_id" -F $'#{pane_id}\t#{pane_current_path}')
 }
 
 clear_swap_mark() {
@@ -142,6 +160,7 @@ build_row() {
 # top row (ceil(n/2)) over a bottom row (floor(n/2)). Panes keep their order.
 rebalance() {
   local window_id="$1"
+  local quiet="${2:-}"
   local dims
   dims="$("$TMUX_BIN" display-message -p -t "$window_id" '#{window_width} #{window_height}')"
   local width="${dims% *}" height="${dims#* }"
@@ -168,7 +187,25 @@ rebalance() {
   fi
 
   "$TMUX_BIN" select-layout -t "$window_id" "$(layout_checksum "$body"),${body}"
-  "$TMUX_BIN" display-message 'Panes rebalanced'
+  if [[ "$quiet" != "quiet" ]]; then
+    "$TMUX_BIN" display-message 'Panes rebalanced'
+  fi
+}
+
+organize_window() {
+  local window_id="$1"
+
+  tag_window "$window_id"
+  rebalance "$window_id" quiet
+}
+
+refresh_window() {
+  local window_id="$1"
+
+  tag_window "$window_id"
+  recolor_window "$window_id" quiet
+  rebalance "$window_id" quiet
+  "$TMUX_BIN" display-message 'Pane indexes, labels, colors, and layout refreshed'
 }
 
 main() {
@@ -183,6 +220,12 @@ main() {
       ;;
     recolor-window)
       recolor_window "$2"
+      ;;
+    refresh-window)
+      refresh_window "$2"
+      ;;
+    organize-window)
+      organize_window "$2"
       ;;
     swap-with-mark)
       swap_with_mark "$2"

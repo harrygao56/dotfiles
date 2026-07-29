@@ -1,4 +1,10 @@
 function wtr --description "Remove current worktree, delete its branch, and kill the current pane"
+    argparse 'f/force' -- $argv
+    or begin
+        echo "Usage: wtr [--force]"
+        return 2
+    end
+
     if not set -q TMUX
         echo "Error: must be inside tmux"
         return 1
@@ -22,8 +28,15 @@ function wtr --description "Remove current worktree, delete its branch, and kill
 
     # Remove the worktree. Bail if it fails (e.g. dirty tree) so we don't kill
     # the pane and leave an invisible orphaned worktree behind.
-    if not git -C $main_worktree worktree remove $current
-        echo "Worktree not removed. To force: git -C $main_worktree worktree remove --force $current"
+    set remove_args
+    if set -q _flag_force
+        set remove_args --force
+    end
+
+    if not git -C $main_worktree worktree remove $remove_args $current
+        if not set -q _flag_force
+            echo "Worktree not removed. Retry with: wtr --force"
+        end
         return 1
     end
 
