@@ -13,6 +13,7 @@
     ~/Brewfile: Brewfile
     ~/.config/karabiner: karabiner
     ~/Library/Application Support/com.mitchellh.ghostty/config: ghostty/config
+    ~/.claude/skills/wta: claude/skills/wta
 
 - shell:
     - [git submodule update --init --recursive, Installing submodules]
